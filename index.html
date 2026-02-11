@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Birthday Scavenger Hunt</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Dancing+Script:wght@700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050510;
+            overflow: hidden;
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* UI Overlays */
+        #blocker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+        }
+
+        #instructions {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            font-size: 24px;
+            line-height: 1.5;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .key {
+            display: inline-block;
+            padding: 5px 10px;
+            border: 1px solid #fff;
+            border-radius: 4px;
+            margin: 0 2px;
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #toast-container {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+            width: 100%;
+        }
+
+        .toast {
+            background: rgba(10, 10, 20, 0.85);
+            color: #bfa;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            padding: 15px 30px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.1);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease-out;
+            max-width: 600px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #interaction-cue {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffd700;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ffaa00;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        #interaction-cue.show {
+            opacity: 1;
+        }
+
+        /* Aesthetic Floral Card Overlay */
+        #birthday-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 2s ease-in-out;
+        }
+
+        #birthday-card.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .card-content {
+            background: linear-gradient(135deg, #fff0f5, #e6e6fa);
+            /* Lavender Blush to Lavender */
+            padding: 60px;
+            border-radius: 12px;
+            border: 4px double #d4af37;
+            /* Gold double border */
+            box-shadow: 0 0 60px rgba(255, 182, 193, 0.4), 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 650px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform 2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #4a4a4a;
+            position: relative;
+            overflow: visible;
+        }
+
+        #birthday-card.visible .card-content {
+            transform: scale(1);
+        }
+
+        /* Floral Decorations */
+        .flower-corner {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.9;
+            pointer-events: none;
+            filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.1));
+            background-image: url('https://cdn-icons-png.flaticon.com/512/346/346167.png');
+            /* Pink Flower Icon */
+        }
+
+        .flower-tl {
+            top: -30px;
+            left: -30px;
+            transform: rotate(-45deg);
+        }
+
+        .flower-tr {
+            top: -30px;
+            right: -30px;
+            transform: rotate(45deg);
+        }
+
+        .flower-bl {
+            bottom: -30px;
+            left: -30px;
+            transform: rotate(-135deg);
+        }
+
+        .flower-br {
+            bottom: -30px;
+            right: -30px;
+            transform: rotate(135deg);
+        }
+
+        .card-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 72px;
+            background: linear-gradient(45deg, #ff6b6b, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 10px 0;
+            filter: drop-shadow(2px 2px 0px rgba(0, 0, 0, 0.05));
+        }
+
+        .card-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+            width: 60%;
+            margin: 20px auto 40px auto;
+        }
+
+        .card-body {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            line-height: 1.8;
+            font-style: italic;
+            margin-bottom: 40px;
+            color: #5d4037;
+        }
+
+        .card-footer {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: #8d6e63;
+            margin-top: 30px;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+            border: none;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 30px;
+            box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 154, 158, 0.6);
+        }
+
+        /* Mobile Controls - DEFAULT HIDDEN */
+        #mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            z-index: 15;
+            display: none;
+            /* Explicitly hidden */
+        }
+
+        #joystick-zone {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            touch-action: none;
+        }
+
+        #joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #look-hint {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+            text-align: right;
+        }
+
+        #mobile-instructions {
+            display: none;
+        }
+
+        /* Only Show Mobile Controls on Screens < 900px */
+        @media only screen and (max-width: 900px) {
+            #mobile-controls {
+                display: block;
+            }
+
+            #instructions {
+                font-size: 18px;
+            }
+
+            #look-hint {
+                display: block;
+            }
+
+            .key {
+                display: none;
+            }
+
+            /* Hide WASD keys */
+            #desktop-instructions {
+                display: none;
+            }
+
+            #mobile-instructions {
+                display: block;
+                color: #ffd700;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="blocker">
+        <div id="instructions">
+            <p style="font-size:48px; font-family: 'Dancing Script', cursive; color: #ffd700;">Start The Journey</p>
+
+            <p id="desktop-instructions">
+                Move: <span class="key">W</span><span class="key">A</span><span class="key">S</span><span
+                    class="key">D</span><br />
+                Look: Mouse &nbsp; Interact: Click
+            </p>
+
+            <p id="mobile-instructions">
+                Touch screen to start.<br>
+                Left Joystick: Move<br>
+                Right Side: Look
+            </p>
+
+            <p style="font-size:18px; opacity:0.8; margin-top:30px; color:#aaa;">Follow the torches. Collect the
+                memories.</p>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <div id="interaction-cue">Click to Open</div>
+
+    <!-- Mobile UI Elements -->
+    <div id="mobile-controls">
+        <div id="joystick-zone">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+    <div id="look-hint">Drag here to look ➔</div>
+
+    <!-- Floral Card Overlay -->
+    <div id="birthday-card">
+        <div class="card-content">
+            <div class="flower-corner flower-tl"></div>
+            <div class="flower-corner flower-tr"></div>
+            <div class="flower-corner flower-bl"></div>
+            <div class="flower-corner flower-br"></div>
+
+            <h1 class="card-title">Happy Birthday! 🎉</h1>
+            <div class="card-divider"></div>
+            <div class="card-body">
+                "To the person who brings so much light into the world..."<br><br>
+                Watching you grow and navigate life's journey has been the greatest privilege.<br><br>
+                May this year bring you as much joy, love, and adventure as you give to everyone around you.
+            </div>
+            <div class="card-footer">With all my love ❤️</div>
+            <button class="close-btn" onclick="location.reload()">Replay Journey ↺</button>
+        </div>
+    </div>
+
+    <script>
+        window.onerror = function (msg, url, line, col, error) {
+            alert("Error: " + msg + "\nLine: " + line);
+            var div = document.createElement("div");
+            div.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:white; color:red; z-index:9999; font-size:20px; padding:20px; white-space:pre-wrap;";
+            div.textContent = "Error: " + msg + "\nLine: " + line + "\nStack: " + (error ? error.stack : "no stack");
+            document.body.appendChild(div);
+        };
+    </script>
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
+        import TWEEN from 'https://cdn.skypack.dev/@tweenjs/tween.js';
+
+        // ─── GLOBALS ───
+        let camera, scene, renderer, controls;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let prevTime = performance.now();
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        let raycaster;
+        let fairyLight;
+        let memories = [];
+        let fireflies;
+        let torches = [];
+        let giftBoxGroup, giftLid, giftBase;
+        let isGiftOpen = false;
+        let fireworks = [];
+
+        // Mobile State
+        let joystickVector = { x: 0, y: 0 };
+        let touchLookSpeed = 2.0;
+
+        // Cinematic camera
+        let cameraLookTarget = null;
+        let isCinematicMode = false;
+
+        const MEMORY_DISTANCE_TRIGGER = 8;
+        const INTERACTION_DISTANCE = 25;
+        const CLICK_DISTANCE = 15;
+
+        const blocker = document.getElementById('blocker');
+        const instructions = document.getElementById('instructions');
+        const toastContainer = document.getElementById('toast-container');
+        const interactionCue = document.getElementById('interaction-cue');
+        const birthdayCardOverlay = document.getElementById('birthday-card');
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        init();
+        animate();
+
+        function checkMobile() {
+            // Check based on screen width primarily, simpler
+            return window.innerWidth <= 900;
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x080818);
+            scene.fog = new THREE.FogExp2(0x080818, 0.012);
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0x606080, 1.0));
+            const moonLight = new THREE.DirectionalLight(0xbbddff, 0.7);
+            moonLight.position.set(50, 100, 50);
+            moonLight.castShadow = true;
+            moonLight.shadow.mapSize.width = 2048; moonLight.shadow.mapSize.height = 2048;
+            moonLight.shadow.camera.left = -100; moonLight.shadow.camera.right = 100;
+            moonLight.shadow.camera.top = 100; moonLight.shadow.camera.bottom = -100;
+            scene.add(moonLight);
+
+            // Visible Moon
+            const moon = new THREE.Mesh(new THREE.SphereGeometry(8, 32, 32), new THREE.MeshBasicMaterial({ color: 0xeeeeff }));
+            moon.position.set(50, 100, -80); scene.add(moon);
+
+            // Moon Glow
+            const gc = document.createElement('canvas'); gc.width = 256; gc.height = 256;
+            const gctx = gc.getContext('2d');
+            const grad = gctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            grad.addColorStop(0, 'rgba(200,220,255,0.6)'); grad.addColorStop(0.3, 'rgba(180,200,255,0.2)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+            gctx.fillStyle = grad; gctx.fillRect(0, 0, 256, 256);
+            const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), transparent: true, blending: THREE.AdditiveBlending }));
+            glow.scale.set(60, 60, 1); glow.position.copy(moon.position); scene.add(glow);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.y = 1.6;
+
+            controls = new PointerLockControls(camera, document.body);
+
+            // Interaction Setup
+            instructions.addEventListener('click', () => {
+                if (!checkMobile()) controls.lock();
+                else {
+                    instructions.style.display = 'none';
+                    blocker.style.display = 'none';
+                }
+            });
+
+            controls.addEventListener('lock', () => { instructions.style.display = 'none'; blocker.style.display = 'none'; });
+            controls.addEventListener('unlock', () => {
+                if (!birthdayCardOverlay.classList.contains('visible') && !checkMobile()) {
+                    blocker.style.display = 'flex'; instructions.style.display = 'flex';
+                }
+            });
+            scene.add(controls.getObject());
+
+            // Desktop Input
+            document.addEventListener('keydown', (e) => {
+                switch (e.code) { case 'ArrowUp': case 'KeyW': moveForward = true; break; case 'ArrowLeft': case 'KeyA': moveLeft = true; break; case 'ArrowDown': case 'KeyS': moveBackward = true; break; case 'ArrowRight': case 'KeyD': moveRight = true; break; }
+            });
+            document.addEventListener('keyup', (e) => {
+                switch (e.code) { case 'ArrowUp': case 'KeyW': moveForward = false; break; case 'ArrowLeft': case 'KeyA': moveLeft = false; break; case 'ArrowDown': case 'KeyS': moveBackward = false; break; case 'ArrowRight': case 'KeyD': moveRight = false; break; }
+            });
+
+            // Mobile Input Init
+            initMobileControls();
+
+            raycaster = new THREE.Raycaster();
+
+            // World Objects (Floor, Trees, Torches...)
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshLambertMaterial({ color: 0x0d1f12 }));
+            floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+            for (let i = 0; i < 80; i++) createTree((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 300);
+            for (let z = 0; z > -120; z -= 15) { createTorch(-5, z); createTorch(5, z); }
+
+            // Fireflies
+            const ffGeo = new THREE.BufferGeometry();
+            const ffPositions = [];
+            for (let i = 0; i < 300; i++) ffPositions.push((Math.random() - 0.5) * 200, Math.random() * 10 + 0.5, (Math.random() - 0.5) * 300);
+            ffGeo.setAttribute('position', new THREE.Float32BufferAttribute(ffPositions, 3));
+            fireflies = new THREE.Points(ffGeo, new THREE.PointsMaterial({ color: 0xffffaa, size: 0.25, transparent: true, blending: THREE.AdditiveBlending }));
+            scene.add(fireflies);
+
+            fairyLight = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffee }));
+            fairyLight.add(new THREE.PointLight(0xffffee, 1.5, 15)); scene.add(fairyLight);
+
+            // Memories
+            createMemory(-8, -20, "./begining.png", "Memory Unlocked: The Beginning (2018)");
+            createMemory(8, -35, "https://picsum.photos/id/1015/300/400", "Memory Unlocked: That Mountain Trip 🏔️");
+            createMemory(-6, -50, "./slept.png", "Memory Unlocked: Slept while practice 🎓");
+            createMemory(9, -65, "./ourPet.png", "Memory Unlocked: Our First Pet 🐶");
+            createMemory(-5, -80, "./Spring.png", "Memory Unlocked: Our spring together 🌸");
+            createMemory(7, -95, "./nightout.png", "Memory Unlocked: A Crazy Night Out 🌙");
+
+            createGiftBox(0, 0, -115);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+            // Unified Click Handler
+            window.addEventListener('click', onMouseClick);
+            window.addEventListener('touchstart', onTouchStartGame, { canvas: false, passive: false });
+        }
+
+        function initMobileControls() {
+            // Joystick
+            joystickZone.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = joystickZone.getBoundingClientRect();
+                const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                let dx = touch.clientX - center.x; let dy = touch.clientY - center.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const maxDist = rect.width / 2 - 25;
+                if (distance > maxDist) {
+                    const angle = Math.atan2(dy, dx);
+                    dx = Math.cos(angle) * maxDist; dy = Math.sin(angle) * maxDist;
+                }
+                joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                joystickVector.x = dx / maxDist; joystickVector.y = dy / maxDist;
+            });
+            joystickZone.addEventListener('touchend', (e) => {
+                joystickKnob.style.transform = `translate(-50%, -50%)`;
+                joystickVector.x = 0; joystickVector.y = 0;
+            });
+
+            // Touch Look
+            let lastTouchX = 0, lastTouchY = 0;
+            document.addEventListener('touchstart', (e) => {
+                if (e.target.closest('#joystick-zone')) return;
+                lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+            });
+            document.addEventListener('touchmove', (e) => {
+                if (e.target.closest('#joystick-zone') || birthdayCardOverlay.classList.contains('visible')) return;
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - lastTouchX; const deltaY = touch.clientY - lastTouchY;
+                lastTouchX = touch.clientX; lastTouchY = touch.clientY;
+
+                // Rotate Camera directly if mobile mode detected or just generic touch logic
+                // If on desktop but simulating touch, this works too.
+                const obj = controls.getObject();
+                obj.rotation.y -= deltaX * 0.005;
+                camera.rotation.x -= deltaY * 0.005;
+                camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+            }, { passive: false });
+        }
+
+        // --- Standard Functions (Trees, Torches, Firework class...) ---
+        function createTree(x, z) {
+            if (x > -6 && x < 6) return;
+            const g = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 3, 6), new THREE.MeshLambertMaterial({ color: 0x4a3b2a }));
+            trunk.position.y = 1.5; trunk.castShadow = true; g.add(trunk);
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(3, 7, 6), new THREE.MeshLambertMaterial({ color: 0x1e3f20 }));
+            leaves.position.y = 5; leaves.castShadow = true; g.add(leaves);
+            g.position.set(x, 0, z); g.scale.setScalar(Math.random() * 0.5 + 0.8); scene.add(g);
+        }
+        function createTorch(x, z) {
+            const g = new THREE.Group();
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2, 8), new THREE.MeshLambertMaterial({ color: 0x3d2817 }));
+            post.position.y = 1; post.castShadow = true; g.add(post);
+            const head = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.4, 8), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+            head.position.y = 2.1; g.add(head);
+            const light = new THREE.PointLight(0xff6600, 1.5, 20); light.position.y = 2.5; g.add(light);
+            const particles = [];
+            for (let i = 0; i < 3; i++) {
+                const p = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+                p.position.set(0, 2.3, 0); p.rotation.y = Math.random() * Math.PI; g.add(p);
+                particles.push({ mesh: p, speed: Math.random() * 0.02 + 0.01 });
+            }
+            g.position.set(x, 0, z); scene.add(g);
+            torches.push({ particles });
+        }
+        function createMemory(x, z, url, message) {
+            const mat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+            new THREE.TextureLoader().load(url, tex => { mat.map = tex; mat.needsUpdate = true; }, undefined, () => mat.color.setHex(0x888888));
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3, 4), mat);
+            mesh.position.set(x, 2.5, z);
+            const border = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.2, 0.1), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 }));
+            border.position.z = -0.06; mesh.add(border);
+            mesh.userData = { originalY: 2.5, randomOffset: Math.random() * 100, triggered: false, message };
+            scene.add(mesh); memories.push(mesh);
+        }
+        function createGiftBox(x, y, z) {
+            giftBoxGroup = new THREE.Group();
+            giftBoxGroup.position.set(x, y + 1.2, z);
+            const sz = 2.4;
+            giftBase = new THREE.Mesh(new THREE.BoxGeometry(sz, sz, sz), new THREE.MeshPhongMaterial({ color: 0xff0044, emissive: 0x330011, shininess: 30 }));
+            giftBase.castShadow = true; giftBase.receiveShadow = true; giftBoxGroup.add(giftBase);
+            giftLid = new THREE.Mesh(new THREE.BoxGeometry(sz + 0.2, 0.6, sz + 0.2), new THREE.MeshPhongMaterial({ color: 0xffd700, specular: 0xffffff, shininess: 60 }));
+            giftLid.position.y = sz / 2 + 0.3; giftLid.castShadow = true; giftBoxGroup.add(giftLid);
+            const ribbon = new THREE.Mesh(new THREE.BoxGeometry(sz + 0.1, sz, 0.4), new THREE.MeshPhongMaterial({ color: 0xffd700 }));
+            giftBase.add(ribbon);
+            scene.add(giftBoxGroup);
+        }
+
+        class Firework {
+            constructor(position) {
+                this.isDead = false; this.particles = [];
+                const geo = new THREE.BufferGeometry();
+                const pos = [], cols = [];
+                const color = new THREE.Color().setHSL(Math.random(), 1.0, 0.7);
+                for (let i = 0; i < 150; i++) {
+                    pos.push(position.x, position.y, position.z);
+                    cols.push(color.r, color.g, color.b);
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.max(-1, Math.min(1, (Math.random() * 2) - 1)));
+                    const speed = Math.random() * 18 + 6;
+                    this.particles.push({ vx: speed * Math.sin(phi) * Math.cos(theta), vy: speed * Math.sin(phi) * Math.sin(theta), vz: speed * Math.cos(phi) });
+                }
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+                this.mesh = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 1, blending: THREE.AdditiveBlending }));
+                scene.add(this.mesh);
+            }
+            update(dt) {
+                const pos = this.mesh.geometry.attributes.position.array;
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p = this.particles[i]; p.vy -= 9.8 * dt * 0.5; p.vx *= 0.99; p.vz *= 0.99;
+                    pos[i * 3] += p.vx * dt; pos[i * 3 + 1] += p.vy * dt; pos[i * 3 + 2] += p.vz * dt;
+                }
+                this.mesh.geometry.attributes.position.needsUpdate = true;
+                this.mesh.material.opacity -= dt * 0.15;
+                if (this.mesh.material.opacity <= 0) {
+                    this.isDead = true; scene.remove(this.mesh); this.mesh.geometry.dispose(); this.mesh.material.dispose();
+                }
+            }
+        }
+        function triggerFireworks() {
+            setInterval(() => {
+                const x = (Math.random() - 0.5) * 60; const y = Math.random() * 25 + 15; const z = -115 - 5 - Math.random() * 40;
+                fireworks.push(new Firework(new THREE.Vector3(x, y, z)));
+            }, 400);
+        }
+
+        function showToast(msg) {
+            const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+            toastContainer.appendChild(el); requestAnimationFrame(() => el.classList.add('show'));
+            setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 500); }, 4000);
+        }
+
+        function checkMemories() {
+            const pp = camera.position;
+            memories.forEach(m => {
+                m.lookAt(pp.x, m.position.y, pp.z);
+                if (pp.distanceTo(m.position) < MEMORY_DISTANCE_TRIGGER && !m.userData.triggered) {
+                    showToast(m.userData.message); m.userData.triggered = true;
+                    new TWEEN.Tween(m.rotation).to({ z: m.rotation.z + 0.3 }, 500).yoyo(true).repeat(1).start();
+                }
+            });
+            if (!isGiftOpen) {
+                const gd = pp.distanceTo(giftBoxGroup.position);
+                if (gd < INTERACTION_DISTANCE) {
+                    interactionCue.classList.add('show');
+                    interactionCue.innerText = gd < CLICK_DISTANCE ? "Click to Open!" : "Get Closer...";
+                } else interactionCue.classList.remove('show');
+            }
+        }
+
+        function onMouseClick() {
+            if (checkMobile()) return; // Ignore clicks if mobile (handled by touch)
+            attemptInteraction();
+        }
+        function onTouchStartGame(e) {
+            if (e.target.closest('#birthday-card') || e.target.closest('#mobile-controls')) return;
+            attemptInteraction();
+        }
+
+        function attemptInteraction() {
+            if (birthdayCardOverlay.classList.contains('visible')) return;
+
+            // On desktop, ensure locked. On mobile, skip lock.
+            if (!checkMobile() && !controls.isLocked) { controls.lock(); return; }
+            if (isGiftOpen) return;
+
+            const dist = camera.position.distanceTo(giftBoxGroup.position);
+            if (dist < CLICK_DISTANCE) { openGiftSequence(); return; }
+
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            if (raycaster.intersectObjects(giftBoxGroup.children).length > 0 && dist < INTERACTION_DISTANCE) openGiftSequence();
+            else if (dist >= INTERACTION_DISTANCE && dist < 60) showToast("Can't reach it yet... get closer.");
+        }
+
+        function openGiftSequence() {
+            isGiftOpen = true;
+            controls.unlock();
+            blocker.style.display = 'none';
+            interactionCue.classList.remove('show');
+
+            if (checkMobile()) {
+                document.getElementById('mobile-controls').style.display = 'none';
+                document.getElementById('look-hint').style.display = 'none';
+            }
+
+            isCinematicMode = true;
+            const giftPos = giftBoxGroup.position.clone();
+            cameraLookTarget = giftPos.clone();
+
+            const viewPos = giftBoxGroup.position.clone().add(new THREE.Vector3(0, 3, 8));
+            new TWEEN.Tween(camera.position).to({ x: viewPos.x, y: viewPos.y, z: viewPos.z }, 2000).easing(TWEEN.Easing.Cubic.InOut).start();
+            new TWEEN.Tween(giftLid.rotation).to({ x: -Math.PI / 1.5 }, 1500).delay(1000).easing(TWEEN.Easing.Back.Out).start();
+
+            setTimeout(() => {
+                triggerFireworks();
+                setTimeout(() => {
+                    birthdayCardOverlay.classList.add('visible');
+                    controls.unlock();
+                }, 3000);
+            }, 1000);
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            if (time === undefined) time = performance.now(); // Safety check
+            try {
+                const delta = (time - prevTime) / 1000; prevTime = time;
+                TWEEN.update(time);
+
+                velocity.x -= velocity.x * 10 * delta; velocity.z -= velocity.z * 10 * delta; velocity.y -= 980 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward); direction.x = Number(moveRight) - Number(moveLeft);
+
+                // Overlay joystick input
+                if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+                    direction.z = -joystickVector.y; direction.x = joystickVector.x;
+                }
+
+                direction.normalize();
+
+                if (moveForward || moveBackward || moveLeft || moveRight || joystickVector.x !== 0 || joystickVector.y !== 0) {
+                    const speed = (checkMobile()) ? 300 : 200; // Lowered speed
+                    velocity.z -= direction.z * speed * delta; velocity.x -= direction.x * speed * delta;
+                }
+
+                controls.moveRight(-velocity.x * delta); controls.moveForward(-velocity.z * delta);
+
+                if (isCinematicMode && cameraLookTarget) camera.lookAt(cameraLookTarget);
+
+                if (fairyLight) {
+                    const t = time * 0.0003;
+                    fairyLight.position.z = -20 - (t * 20) % 150; fairyLight.position.x = Math.sin(t * 5) * 8; fairyLight.position.y = 2.5 + Math.sin(t * 7) * 0.6;
+                }
+
+                memories.forEach(m => m.position.y = m.userData.originalY + Math.sin(time * 0.002 + m.userData.randomOffset) * 0.2);
+                torches.forEach(t => t.particles.forEach(p => { p.mesh.position.y += p.speed; p.mesh.lookAt(camera.position); p.mesh.material.opacity -= 0.01; if (p.mesh.position.y > 3 || p.mesh.material.opacity <= 0) { p.mesh.position.y = 2.3; p.mesh.material.opacity = 0.8; } }));
+                if (fireflies) { const pos = fireflies.geometry.attributes.position.array; for (let i = 0; i < pos.length; i += 3) pos[i + 1] += Math.sin(time * 0.001 + pos[i]) * 0.02; fireflies.geometry.attributes.position.needsUpdate = true; }
+
+                for (let i = fireworks.length - 1; i >= 0; i--) { fireworks[i].update(delta); if (fireworks[i].isDead) fireworks.splice(i, 1); }
+
+                checkMemories();
+                renderer.render(scene, camera);
+            } catch (e) { console.error(e); }
+        }
+    </script>
+</body>
+
+</html>
